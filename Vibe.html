@@ -1,0 +1,651 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Vibe</title>
+<style>
+:root{
+  --bg:#0b0b0f; --card:#16161d; --text:#f3f3f6; --muted:#9a9aa5;
+  --accent:#ff3b7b; --accent2:#7c5cff; --border:#26262f;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: light){
+  :root:not([data-theme="dark"]){ --bg:#f6f6f9; --card:#ffffff; --text:#17171c; --muted:#6c6c76; --border:#e6e6ee; }
+}
+:root[data-theme="light"]{ --bg:#f6f6f9; --card:#ffffff; --text:#17171c; --muted:#6c6c76; --border:#e6e6ee; }
+*{box-sizing:border-box;}
+html,body{height:100%;margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;}
+header{position:sticky;top:0;top:env(safe-area-inset-top,0px);z-index:10;display:flex;align-items:center;justify-content:space-between;padding:14px 16px;background:linear-gradient(180deg,var(--bg) 70%,transparent);}
+.logo{font-weight:800;font-size:20px;background:linear-gradient(90deg,var(--accent),var(--accent2));-webkit-background-clip:text;background-clip:text;color:transparent;}
+button{font:inherit;cursor:pointer;border:none;}
+.btn{background:linear-gradient(90deg,var(--accent),var(--accent2));color:#fff;padding:9px 16px;border-radius:20px;font-weight:600;font-size:14px;}
+.btn.ghost{background:transparent;color:var(--text);border:1px solid var(--border);}
+#feed{max-width:480px;margin:0 auto;padding:8px 12px 90px;}
+.post{background:var(--card);border:1px solid var(--border);border-radius:16px;margin-bottom:16px;overflow:hidden;}
+.post video{width:100%;max-height:520px;background:#000;display:block;}
+.post .meta{display:flex;align-items:center;gap:8px;padding:10px 14px 4px;}
+.avatar{width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-size:14px;color:#fff;flex-shrink:0;overflow:hidden;}
+.avatar img, .big-avatar img{width:100%;height:100%;object-fit:cover;border-radius:50%;}
+.name{font-weight:600;font-size:14px;}
+.cap{padding:6px 14px 4px;font-size:14px;color:var(--muted);}
+.actions{display:flex;gap:16px;padding:6px 14px 14px;font-size:14px;}
+.actions span{cursor:pointer;color:var(--muted);}
+.actions span.liked{color:var(--accent);}
+.actions span.del{margin-left:auto;color:#ff5c5c;}
+#empty{text-align:center;color:var(--muted);padding:60px 20px;}
+#fab{position:fixed;right:20px;bottom:calc(24px + env(safe-area-inset-bottom,0px));width:56px;height:56px;border-radius:50%;background:linear-gradient(90deg,var(--accent),var(--accent2));color:#fff;font-size:26px;box-shadow:0 6px 20px rgba(0,0,0,.3);}
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;z-index:50;padding:20px;}
+.hidden{display:none !important;}
+.modal{background:var(--card);border:1px solid var(--border);border-radius:18px;padding:20px;width:100%;max-width:380px;}
+.modal h3{margin:0 0 12px;}
+.modal input, .modal textarea{width:100%;padding:10px 12px;border-radius:10px;border:1px solid var(--border);background:var(--bg);color:var(--text);margin-bottom:10px;font:inherit;}
+.modal .row{display:flex;gap:10px;justify-content:flex-end;margin-top:8px;}
+#status{font-size:13px;color:var(--muted);min-height:16px;}
+.badge{position:absolute;top:-4px;right:-4px;background:var(--accent);color:#fff;font-size:10px;font-weight:700;border-radius:10px;min-width:16px;height:16px;display:flex;align-items:center;justify-content:center;padding:0 3px;}
+.urow{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);}
+.urow:last-child{border-bottom:none;}
+.urow .name{flex:1;font-size:14px;}
+.urow .lock{color:var(--muted);font-size:12px;}
+.small-btn{padding:6px 12px;border-radius:16px;font-size:13px;font-weight:600;}
+.small-btn.follow{background:linear-gradient(90deg,var(--accent),var(--accent2));color:#fff;}
+.small-btn.pending{background:transparent;border:1px solid var(--border);color:var(--muted);}
+.small-btn.accepted{background:transparent;border:1px solid var(--border);color:var(--text);}
+.urow.clickable{cursor:pointer;}
+.pgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;}
+.pgrid video{width:100%;height:110px;object-fit:cover;border-radius:6px;background:#000;}
+.big-avatar{width:64px;height:64px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-size:26px;color:#fff;}
+.bubble{max-width:75%;padding:8px 12px;border-radius:14px;font-size:14px;line-height:1.35;}
+.bubble.mine{align-self:flex-end;background:linear-gradient(90deg,var(--accent),var(--accent2));color:#fff;border-bottom-right-radius:4px;}
+.bubble.theirs{align-self:flex-start;background:var(--card);border:1px solid var(--border);border-bottom-left-radius:4px;}
+.convo-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);cursor:pointer;}
+.convo-row:last-child{border-bottom:none;}
+.convo-row .prev{color:var(--muted);font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">Vibe</div>
+  <div style="display:flex;gap:8px;">
+    <button class="btn ghost" id="searchToggle">🔍</button>
+    <button class="btn ghost" id="msgToggle">💬</button>
+    <button class="btn ghost" id="notifToggle" style="position:relative;">🔔<span id="notifBadge" class="badge hidden">0</span></button>
+    <button class="btn ghost" id="profileBtn">👤</button>
+  </div>
+</header>
+
+<div id="searchBar" class="hidden" style="max-width:480px;margin:0 auto;padding:0 12px 10px;">
+  <input id="searchInput" placeholder="Rechercher un utilisateur…" style="width:100%;padding:10px 14px;border-radius:20px;border:1px solid var(--border);background:var(--card);color:var(--text);font:inherit;">
+  <div id="searchResults"></div>
+</div>
+
+<div id="feed"><div id="empty">Chargement du fil…</div></div>
+
+<button id="fab">＋</button>
+
+<div class="overlay hidden" id="setupOverlay">
+  <div class="modal">
+    <h3>Créer ton compte</h3>
+    <div style="display:flex;justify-content:center;margin-bottom:10px;">
+      <label for="avatarFile" style="cursor:pointer;position:relative;">
+        <div id="avatarPreview" class="big-avatar" style="width:72px;height:72px;font-size:28px;background-size:cover;background-position:center;">?</div>
+        <div style="text-align:center;font-size:12px;color:var(--muted);margin-top:4px;">Changer la photo</div>
+      </label>
+      <input type="file" id="avatarFile" accept="image/*" class="hidden">
+    </div>
+    <input id="setupName" placeholder="Nom affiché" maxlength="30">
+    <input id="setupBio" placeholder="Petite bio (optionnel)" maxlength="60">
+    <label style="display:flex;align-items:center;gap:8px;font-size:14px;color:var(--muted);margin-bottom:10px;">
+      <input type="checkbox" id="setupPrivate" style="width:auto;margin:0;"> Compte privé (les demandes de suivi doivent être acceptées)
+    </label>
+    <div id="status"></div>
+    <div class="row">
+      <button class="btn ghost hidden" id="deleteAccount">Supprimer le compte</button>
+      <button class="btn" id="setupSave">Créer le compte</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay hidden" id="messagesOverlay">
+  <div class="modal">
+    <div class="row" style="justify-content:space-between;margin:0 0 10px;"><h3 style="margin:0;">Messages</h3><button class="btn ghost" id="closeMessages">Fermer</button></div>
+    <div id="conversationsList"><div style="color:var(--muted);font-size:14px;">Aucune conversation.</div></div>
+  </div>
+</div>
+
+<div class="overlay hidden" id="chatOverlay">
+  <div class="modal" style="display:flex;flex-direction:column;height:70vh;max-height:70vh;">
+    <div class="row" style="justify-content:space-between;margin:0 0 10px;">
+      <button class="btn ghost" id="closeChat">← Retour</button>
+      <div id="chatPartnerName" style="font-weight:700;"></div>
+      <span style="width:70px;"></span>
+    </div>
+    <div id="chatMessages" style="flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:6px;padding:4px 2px;"></div>
+    <div style="display:flex;gap:8px;margin-top:10px;">
+      <input id="chatInput" placeholder="Écris un message…" style="flex:1;padding:10px 14px;border-radius:20px;border:1px solid var(--border);background:var(--bg);color:var(--text);font:inherit;">
+      <button class="btn" id="sendChatBtn">Envoyer</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay hidden" id="profileOverlay">
+  <div class="modal" style="max-width:440px;max-height:85vh;overflow-y:auto;">
+    <div class="row" style="justify-content:space-between;margin:0 0 10px;">
+      <button class="btn ghost" id="closeProfileView">← Retour</button>
+    </div>
+    <div id="profileViewHeader" style="display:flex;flex-direction:column;align-items:center;gap:8px;margin-bottom:16px;"></div>
+    <div id="profileViewBody"></div>
+  </div>
+</div>
+
+<div class="overlay hidden" id="notifOverlay">
+  <div class="modal">
+    <h3>Notifications</h3>
+    <div id="notifList"><div style="color:var(--muted);font-size:14px;">Aucune demande en attente.</div></div>
+    <div class="row"><button class="btn ghost" id="closeNotif">Fermer</button></div>
+  </div>
+</div>
+
+<div class="overlay hidden" id="uploadOverlay">
+  <div class="modal">
+    <h3>Nouvelle vidéo</h3>
+    <input type="file" id="videoFile" accept="video/*">
+    <div class="row" style="justify-content:flex-start;margin:10px 0;">
+      <label class="btn ghost" for="cameraCapture" style="display:inline-block;">🎥 Filmer avec la caméra du téléphone</label>
+      <input type="file" id="cameraCapture" accept="video/*" capture="environment" class="hidden">
+    </div>
+    <div id="cameraCaptureStatus" style="font-size:13px;color:var(--muted);margin-bottom:8px;"></div>
+    <textarea id="caption" placeholder="Légende…" rows="2" maxlength="200"></textarea>
+    <div id="uploadStatus"></div>
+    <div class="row">
+      <button class="btn ghost" id="cancelUpload">Annuler</button>
+      <button class="btn" id="postBtn">Publier</button>
+    </div>
+  </div>
+</div>
+
+<script>
+let db, assets, user, uid, myProfile = null;
+const feedEl = document.getElementById('feed');
+
+async function boot(){
+  user = await claude.use('user');
+  db = await claude.use('db');
+  assets = await claude.use('assets');
+  if(!user || !db || !assets){
+    feedEl.innerHTML = '<div id="empty">Cette app nécessite d’être connecté à Claude pour créer un compte et publier.</div>';
+    return;
+  }
+  uid = await user.id();
+  try{
+    const doc = await db.doc('profiles/'+uid).get();
+    myProfile = (doc && doc.exists) ? doc.data() : null;
+  }catch(e){ myProfile = null; }
+  if(!myProfile){ document.getElementById('setupOverlay').classList.remove('hidden'); }
+  subscribeNotifications();
+  subscribeFeed();
+}
+
+document.getElementById('deleteAccount').onclick = async (ev) => {
+  if(!myProfile){ return; }
+  const btn = ev.currentTarget;
+  if(btn.dataset.armed !== '1'){
+    btn.dataset.armed = '1';
+    btn.textContent = 'Confirmer la suppression ?';
+    setTimeout(() => { if(btn.dataset.armed==='1'){ btn.dataset.armed=''; btn.textContent='Supprimer le compte'; } }, 4000);
+    return;
+  }
+  btn.dataset.armed = '';
+  const statusEl = document.getElementById('status');
+  btn.disabled = true;
+  btn.textContent = 'Suppression…';
+  statusEl.textContent = '';
+  try{
+    // Supprime d'abord toutes ses vidéos publiées
+    const mine = await db.collection('posts').where('authorId','==',uid).get();
+    const docs = mine && mine.docs ? mine.docs : [];
+    for(const d of docs){
+      try{
+        const data = d.data() || {};
+        await db.doc('posts/'+d.id).delete();
+        if(data.assetId){ try{ await assets.delete(data.assetId); }catch(e){} }
+      }catch(e){ /* on continue même si une vidéo échoue */ }
+    }
+    await db.doc('profiles/'+uid).delete();
+    myProfile = null;
+    document.getElementById('setupName').value = '';
+    document.getElementById('setupBio').value = '';
+    btn.classList.add('hidden');
+    statusEl.textContent = 'Compte et vidéos supprimés.';
+  }catch(e){
+    statusEl.textContent = 'Erreur lors de la suppression.';
+  }finally{
+    btn.disabled = false;
+    btn.textContent = 'Supprimer le compte';
+  }
+};
+
+let pendingAvatarFile = null;
+document.getElementById('avatarFile').addEventListener('change', () => {
+  const f = document.getElementById('avatarFile').files[0];
+  if(!f) return;
+  pendingAvatarFile = f;
+  const preview = document.getElementById('avatarPreview');
+  preview.style.backgroundImage = `url(${URL.createObjectURL(f)})`;
+  preview.textContent = '';
+});
+
+document.getElementById('setupSave').onclick = async () => {
+  const name = document.getElementById('setupName').value.trim();
+  if(!name){ document.getElementById('status').textContent = 'Choisis un nom.'; return; }
+  const bio = document.getElementById('setupBio').value.trim();
+  const isPrivate = document.getElementById('setupPrivate').checked;
+  document.getElementById('status').textContent = 'Création…';
+  try{
+    let avatarAssetId = myProfile ? myProfile.avatarAssetId : null;
+    if(pendingAvatarFile){
+      const uploaded = await assets.upload(pendingAvatarFile);
+      avatarAssetId = uploaded.id;
+    }
+    await db.doc('profiles/'+uid).set({ uid, name, bio, private: isPrivate, avatarAssetId: avatarAssetId||null, createdAt: Date.now() });
+    myProfile = { name, bio, private: isPrivate, avatarAssetId };
+    pendingAvatarFile = null;
+    document.getElementById('setupOverlay').classList.add('hidden');
+  }catch(e){ document.getElementById('status').textContent = 'Erreur, réessaie.'; }
+};
+
+document.getElementById('profileBtn').onclick = () => {
+  document.getElementById('setupName').value = myProfile ? myProfile.name : '';
+  document.getElementById('setupBio').value = myProfile ? myProfile.bio||'' : '';
+  document.getElementById('setupPrivate').checked = myProfile ? !!myProfile.private : false;
+  pendingAvatarFile = null;
+  document.getElementById('avatarFile').value = '';
+  const preview = document.getElementById('avatarPreview');
+  if(myProfile && myProfile.avatarAssetId){
+    preview.style.backgroundImage = `url(/_blob/${myProfile.avatarAssetId})`;
+    preview.textContent = '';
+  }else{
+    preview.style.backgroundImage = '';
+    preview.textContent = myProfile ? (myProfile.name||'?').charAt(0).toUpperCase() : '?';
+  }
+  const delBtn = document.getElementById('deleteAccount');
+  delBtn.classList.toggle('hidden', !myProfile);
+  delBtn.dataset.armed = '';
+  delBtn.textContent = 'Supprimer le compte';
+  document.getElementById('setupOverlay').classList.remove('hidden');
+};
+
+document.getElementById('fab').onclick = () => {
+  if(!myProfile){ document.getElementById('setupOverlay').classList.remove('hidden'); return; }
+  document.getElementById('uploadOverlay').classList.remove('hidden');
+};
+document.getElementById('cancelUpload').onclick = () => {
+  document.getElementById('videoFile').value = '';
+  document.getElementById('cameraCapture').value = '';
+  document.getElementById('cameraCaptureStatus').textContent = '';
+  document.getElementById('uploadOverlay').classList.add('hidden');
+};
+
+document.getElementById('cameraCapture').addEventListener('change', () => {
+  const f = document.getElementById('cameraCapture').files[0];
+  if(f){
+    document.getElementById('videoFile').value = '';
+    document.getElementById('cameraCaptureStatus').textContent = 'Vidéo filmée prête : ' + f.name;
+  }
+});
+document.getElementById('videoFile').addEventListener('change', () => {
+  if(document.getElementById('videoFile').files[0]){
+    document.getElementById('cameraCapture').value = '';
+    document.getElementById('cameraCaptureStatus').textContent = '';
+  }
+});
+
+document.getElementById('postBtn').onclick = async () => {
+  const file = document.getElementById('cameraCapture').files[0] || document.getElementById('videoFile').files[0];
+  const caption = document.getElementById('caption').value.trim();
+  const statusEl = document.getElementById('uploadStatus');
+  if(!file){ statusEl.textContent = 'Choisis ou filme une vidéo.'; return; }
+  statusEl.textContent = 'Envoi en cours…';
+  try{
+    const uploaded = await assets.upload(file);
+    await db.collection('posts').add({
+      authorId: uid, assetId: uploaded.id, caption, likes: [], createdAt: Date.now()
+    });
+    document.getElementById('uploadOverlay').classList.add('hidden');
+    document.getElementById('videoFile').value=''; document.getElementById('cameraCapture').value='';
+    document.getElementById('cameraCaptureStatus').textContent=''; document.getElementById('caption').value='';
+    statusEl.textContent='';
+  }catch(e){ statusEl.textContent = 'Échec de la publication.'; }
+};
+
+document.getElementById('searchToggle').onclick = () => {
+  document.getElementById('searchBar').classList.toggle('hidden');
+};
+
+let searchTimer = null;
+document.getElementById('searchInput').addEventListener('input', (e) => {
+  clearTimeout(searchTimer);
+  const q = e.target.value.trim().toLowerCase();
+  searchTimer = setTimeout(() => runSearch(q), 250);
+});
+
+async function getRelStatus(targetId){
+  try{
+    const rel = await db.doc('follows/'+uid+'_'+targetId).get();
+    if(rel && rel.exists) return rel.data().status;
+  }catch(e){}
+  return 'none';
+}
+
+function makeFollowBtn(targetId, p, relStatus, onChange){
+  const btn = document.createElement('button');
+  btn.className = 'small-btn ' + (relStatus==='accepted'?'accepted':relStatus==='pending'?'pending':'follow');
+  btn.textContent = relStatus==='accepted'?'Abonné':relStatus==='pending'?'Demande envoyée':'Suivre';
+  if(relStatus==='none'){
+    btn.onclick = async (ev) => {
+      ev.stopPropagation();
+      btn.disabled = true; btn.textContent = '…';
+      try{
+        if(p.private){
+          await db.doc('follows/'+uid+'_'+targetId).set({ followerId: uid, targetId, status:'pending', createdAt: Date.now() });
+          await db.collection('notifications').add({ toUserId: targetId, fromUserId: uid, type:'follow_request', status:'pending', createdAt: Date.now() });
+          btn.className='small-btn pending'; btn.textContent='Demande envoyée';
+          if(onChange) onChange('pending');
+        }else{
+          await db.doc('follows/'+uid+'_'+targetId).set({ followerId: uid, targetId, status:'accepted', createdAt: Date.now() });
+          btn.className='small-btn accepted'; btn.textContent='Abonné';
+          if(onChange) onChange('accepted');
+        }
+      }catch(e){ btn.textContent='Erreur'; }
+      btn.disabled = false;
+    };
+  }else{
+    btn.onclick = (ev) => ev.stopPropagation();
+  }
+  return btn;
+}
+
+async function openProfilePage(targetId, p){
+  const isSelf = targetId === uid;
+  const relStatus = isSelf ? 'self' : await getRelStatus(targetId);
+  const header = document.getElementById('profileViewHeader');
+  const initial = (p.name||'?').trim().charAt(0).toUpperCase();
+  header.innerHTML = `<div class="big-avatar">${p.avatarAssetId ? `<img src="/_blob/${p.avatarAssetId}">` : initial}</div>
+    <div style="font-weight:700;font-size:18px;">${escapeHtml(p.name)}</div>
+    ${p.bio ? `<div style="color:var(--muted);font-size:14px;text-align:center;">${escapeHtml(p.bio)}</div>` : ''}
+    ${p.private ? '<div class="lock">🔒 Compte privé</div>' : ''}`;
+  if(!isSelf){
+    header.appendChild(makeFollowBtn(targetId, p, relStatus, (s)=>renderProfileBody(targetId, p, s)));
+    const msgBtn = document.createElement('button');
+    msgBtn.className = 'small-btn accepted';
+    msgBtn.textContent = '✉️ Message';
+    msgBtn.onclick = () => openChat(targetId, p.name);
+    header.appendChild(msgBtn);
+  }
+  document.getElementById('profileOverlay').classList.remove('hidden');
+  renderProfileBody(targetId, p, relStatus);
+}
+
+async function renderProfileBody(targetId, p, relStatus){
+  const body = document.getElementById('profileViewBody');
+  const canSee = !p.private || relStatus==='accepted' || relStatus==='self';
+  if(!canSee){
+    body.innerHTML = '<div style="text-align:center;color:var(--muted);padding:20px 0;">Ce compte est privé. Abonnez-vous pour voir ses vidéos.</div>';
+    return;
+  }
+  body.innerHTML = '<div style="text-align:center;color:var(--muted);padding:10px 0;">Chargement des vidéos…</div>';
+  try{
+    const snap = await db.collection('posts').where('authorId','==',targetId).get();
+    const posts = (snap && snap.docs ? snap.docs : []).map(d=>({id:d.id, ...d.data()})).sort((a,b)=>b.createdAt-a.createdAt);
+    if(posts.length===0){ body.innerHTML = '<div style="text-align:center;color:var(--muted);padding:20px 0;">Aucune vidéo publiée.</div>'; return; }
+    const grid = document.createElement('div');
+    grid.className='pgrid';
+    posts.forEach(post => {
+      const v = document.createElement('video');
+      v.muted = true; v.playsInline = true; v.controls = true;
+      v.src = post.assetId ? ('/_blob/'+post.assetId) : (post.assetUrl||'');
+      grid.appendChild(v);
+    });
+    body.innerHTML=''; body.appendChild(grid);
+  }catch(e){ body.innerHTML = '<div style="text-align:center;color:var(--muted);padding:20px 0;">Erreur de chargement.</div>'; }
+}
+document.getElementById('closeProfileView').onclick = () => document.getElementById('profileOverlay').classList.add('hidden');
+
+async function runSearch(q){
+  const resEl = document.getElementById('searchResults');
+  if(!q){ resEl.innerHTML=''; return; }
+  resEl.innerHTML = '<div style="color:var(--muted);font-size:13px;padding:6px 0;">Recherche…</div>';
+  let all = [];
+  try{
+    const snap = await db.collection('profiles').get();
+    all = snap && snap.docs ? snap.docs : [];
+  }catch(e){ resEl.innerHTML = '<div style="color:var(--muted);font-size:13px;">Erreur de recherche.</div>'; return; }
+  const matches = all.filter(d => d.exists && ((d.data().name || '').toLowerCase().includes(q)));
+  if(matches.length===0){ resEl.innerHTML = '<div style="color:var(--muted);font-size:13px;padding:6px 0;">Aucun utilisateur trouvé.</div>'; return; }
+  resEl.innerHTML = '';
+  for(const m of matches){
+    const row = document.createElement('div');
+    row.className = 'urow clickable';
+    const p = m.data();
+    if(m.id === uid){
+      row.innerHTML = `<div class="avatar">${p.avatarAssetId?`<img src="/_blob/${p.avatarAssetId}">`:(p.name||'?').charAt(0).toUpperCase()}</div><div class="name">${escapeHtml(p.name)} <span class="lock">(Vous)</span> ${p.private?'<span class="lock">🔒 privé</span>':''}</div>`;
+      row.onclick = () => openProfilePage(m.id, p);
+      resEl.appendChild(row);
+      continue;
+    }
+    const relStatus = await getRelStatus(m.id);
+    const avatarDiv = document.createElement('div');
+    avatarDiv.className = 'avatar';
+    avatarDiv.innerHTML = p.avatarAssetId ? `<img src="/_blob/${p.avatarAssetId}">` : (p.name||'?').charAt(0).toUpperCase();
+    row.appendChild(avatarDiv);
+    const nameDiv = document.createElement('div');
+    nameDiv.className = 'name';
+    nameDiv.innerHTML = `${escapeHtml(p.name)} ${p.private?'<span class="lock">🔒 privé</span>':''}`;
+    row.appendChild(nameDiv);
+    row.appendChild(makeFollowBtn(m.id, p, relStatus));
+    row.onclick = () => openProfilePage(m.id, p);
+    resEl.appendChild(row);
+  }
+}
+
+document.getElementById('notifToggle').onclick = () => {
+  document.getElementById('notifOverlay').classList.remove('hidden');
+};
+document.getElementById('closeNotif').onclick = () => document.getElementById('notifOverlay').classList.add('hidden');
+
+function subscribeNotifications(){
+  try{
+    const q = db.collection('notifications').where('toUserId','==',uid).where('status','==','pending');
+    q.onSnapshot(async (snap) => {
+      const notifs = snap.docs ? snap.docs.map(d => ({id:d.id, ...d.data()})) : [];
+      const badge = document.getElementById('notifBadge');
+      if(notifs.length>0){ badge.textContent = notifs.length; badge.classList.remove('hidden'); }
+      else{ badge.classList.add('hidden'); }
+      const listEl = document.getElementById('notifList');
+      if(notifs.length===0){ listEl.innerHTML = '<div style="color:var(--muted);font-size:14px;">Aucune demande en attente.</div>'; return; }
+      const fromIds = [...new Set(notifs.map(n=>n.fromUserId))];
+      let profiles = {};
+      try{ profiles = await user.profiles(fromIds); }catch(e){}
+      listEl.innerHTML = '';
+      notifs.forEach(n => {
+        const fromName = (profiles[n.fromUserId] && profiles[n.fromUserId].name) || 'Quelqu’un';
+        const row = document.createElement('div');
+        row.className = 'urow';
+        row.innerHTML = `<div class="name"><b>${escapeHtml(fromName)}</b> veut vous suivre. Voulez-vous accepter cette demande ?</div>`;
+        const btns = document.createElement('div');
+        btns.style.display='flex'; btns.style.gap='6px';
+        const okBtn = document.createElement('button'); okBtn.className='small-btn follow'; okBtn.textContent='Accepter';
+        const noBtn = document.createElement('button'); noBtn.className='small-btn pending'; noBtn.textContent='Refuser';
+        okBtn.onclick = async () => {
+          okBtn.disabled = noBtn.disabled = true;
+          try{
+            await db.doc('follows/'+n.fromUserId+'_'+uid).update({ status:'accepted' });
+            await db.doc('notifications/'+n.id).update({ status:'handled' });
+          }catch(e){}
+        };
+        noBtn.onclick = async () => {
+          okBtn.disabled = noBtn.disabled = true;
+          try{
+            await db.doc('follows/'+n.fromUserId+'_'+uid).delete();
+            await db.doc('notifications/'+n.id).update({ status:'handled' });
+          }catch(e){}
+        };
+        btns.appendChild(okBtn); btns.appendChild(noBtn);
+        row.appendChild(btns);
+        listEl.appendChild(row);
+      });
+    });
+  }catch(e){}
+}
+
+let unsub = null;
+function subscribeFeed(){
+  try{
+    const q = db.collection('posts').orderBy('createdAt','desc').limit(30);
+    unsub = q.onSnapshot(async (snap) => {
+      const posts = snap.docs ? snap.docs.map(d => ({id:d.id, ...d.data()})) : [];
+      if(posts.length===0){ feedEl.innerHTML = '<div id="empty">Aucune vidéo pour l’instant. Sois le premier à publier !</div>'; return; }
+      const authorIds = [...new Set(posts.map(p=>p.authorId))];
+      let profiles = {};
+      try{ profiles = await user.profiles(authorIds); }catch(e){}
+      let avatarMap = {};
+      try{
+        const psnap = await db.collection('profiles').where('uid','in',authorIds.slice(0,30)).get();
+        (psnap.docs||[]).forEach(d => { const dd = d.data(); avatarMap[dd.uid] = dd.avatarAssetId; });
+      }catch(e){}
+      feedEl.innerHTML = '';
+      posts.forEach(p => feedEl.appendChild(renderPost(p, profiles, avatarMap)));
+    });
+  }catch(e){
+    feedEl.innerHTML = '<div id="empty">Impossible de charger le fil.</div>';
+  }
+}
+
+function renderPost(p, profiles, avatarMap){
+  const el = document.createElement('div');
+  el.className='post';
+  const name = (profiles[p.authorId] && profiles[p.authorId].name) || 'Quelqu’un';
+  const avatarId = avatarMap && avatarMap[p.authorId];
+  const initial = name.trim().charAt(0).toUpperCase() || '?';
+  const liked = (p.likes||[]).includes(uid);
+  el.innerHTML = `
+    <div class="meta"><div class="avatar">${avatarId?`<img src="/_blob/${avatarId}">`:initial}</div><div class="name">${escapeHtml(name)}</div></div>
+    <video controls playsinline loop muted autoplay preload="metadata"></video>
+    ${p.caption ? `<div class="cap">${escapeHtml(p.caption)}</div>` : ''}
+    <div class="actions"><span class="like ${liked?'liked':''}">❤ ${(p.likes||[]).length}</span><span>💬 Commenter</span>${p.authorId===uid ? '<span class="del">🗑 Supprimer</span>' : ''}</div>`;
+  const vid = el.querySelector('video');
+  vid.src = p.assetId ? ('/_blob/' + p.assetId) : (p.assetUrl || '');
+  vid.addEventListener('loadedmetadata', () => { vid.play().catch(()=>{}); });
+  vid.addEventListener('error', () => {
+    const warn = document.createElement('div');
+    warn.style.cssText = 'padding:10px 14px;color:var(--muted);font-size:13px;';
+    warn.textContent = 'Vidéo indisponible.';
+    vid.replaceWith(warn);
+  });
+  el.querySelector('.like').onclick = async () => {
+    const likes = new Set(p.likes||[]);
+    if(likes.has(uid)) likes.delete(uid); else likes.add(uid);
+    try{ await db.doc('posts/'+p.id).update({ likes:[...likes] }); }catch(e){}
+  };
+  const delBtn = el.querySelector('.del');
+  if(delBtn){
+    delBtn.onclick = async () => {
+      if(delBtn.dataset.armed !== '1'){
+        delBtn.dataset.armed = '1';
+        delBtn.textContent = '🗑 Confirmer ?';
+        setTimeout(() => { if(delBtn.dataset.armed==='1'){ delBtn.dataset.armed=''; delBtn.textContent='🗑 Supprimer'; } }, 4000);
+        return;
+      }
+      delBtn.textContent = '⏳ Suppression…';
+      try{
+        await db.doc('posts/'+p.id).delete();
+        if(p.assetId){ try{ await assets.delete(p.assetId); }catch(e){} }
+      }catch(e){ delBtn.textContent='Erreur'; }
+    };
+  }
+  return el;
+}
+function escapeHtml(s){ return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+function convoId(a,b){ return [a,b].sort().join('_'); }
+
+document.getElementById('msgToggle').onclick = () => {
+  document.getElementById('messagesOverlay').classList.remove('hidden');
+  loadConversations();
+};
+document.getElementById('closeMessages').onclick = () => document.getElementById('messagesOverlay').classList.add('hidden');
+
+async function loadConversations(){
+  const listEl = document.getElementById('conversationsList');
+  listEl.innerHTML = '<div style="color:var(--muted);font-size:14px;">Chargement…</div>';
+  try{
+    const snap = await db.collection('conversations').where('participants','array-contains',uid).orderBy('lastAt','desc').limit(30).get();
+    const convos = (snap.docs||[]).map(d=>({id:d.id, ...d.data()}));
+    if(convos.length===0){ listEl.innerHTML = '<div style="color:var(--muted);font-size:14px;">Aucune conversation. Ouvre un profil et clique sur ✉️ Message.</div>'; return; }
+    const partnerIds = convos.map(c => c.participants.find(p=>p!==uid));
+    let profiles = {};
+    try{ profiles = await user.profiles(partnerIds); }catch(e){}
+    listEl.innerHTML = '';
+    convos.forEach(c => {
+      const partnerId = c.participants.find(p=>p!==uid);
+      const name = (profiles[partnerId] && profiles[partnerId].name) || 'Quelqu’un';
+      const row = document.createElement('div');
+      row.className = 'convo-row';
+      row.innerHTML = `<div class="avatar">${name.charAt(0).toUpperCase()}</div><div style="flex:1;"><div class="name">${escapeHtml(name)}</div><div class="prev">${escapeHtml(c.lastMessage||'')}</div></div>`;
+      row.onclick = () => openChat(partnerId, name);
+      listEl.appendChild(row);
+    });
+  }catch(e){ listEl.innerHTML = '<div style="color:var(--muted);font-size:14px;">Erreur de chargement.</div>'; }
+}
+
+let chatUnsub = null, currentChatId = null, currentPartnerId = null;
+async function openChat(partnerId, partnerName){
+  document.getElementById('messagesOverlay').classList.add('hidden');
+  document.getElementById('profileOverlay').classList.add('hidden');
+  document.getElementById('chatPartnerName').textContent = partnerName;
+  document.getElementById('chatOverlay').classList.remove('hidden');
+  document.getElementById('chatMessages').innerHTML = '<div style="color:var(--muted);font-size:14px;">Chargement…</div>';
+  currentPartnerId = partnerId;
+  currentChatId = convoId(uid, partnerId);
+  if(chatUnsub) chatUnsub();
+  try{
+    const q = db.doc('conversations/'+currentChatId).collection('messages').orderBy('createdAt','asc').limit(200);
+    chatUnsub = q.onSnapshot(snap => {
+      const msgs = (snap.docs||[]).map(d=>d.data());
+      const box = document.getElementById('chatMessages');
+      box.innerHTML = msgs.length ? '' : '<div style="color:var(--muted);font-size:14px;">Dis bonjour 👋</div>';
+      msgs.forEach(m => {
+        const b = document.createElement('div');
+        b.className = 'bubble ' + (m.senderId===uid ? 'mine' : 'theirs');
+        b.textContent = m.text;
+        box.appendChild(b);
+      });
+      box.scrollTop = box.scrollHeight;
+    }, () => {});
+  }catch(e){}
+}
+
+document.getElementById('closeChat').onclick = () => {
+  if(chatUnsub){ chatUnsub(); chatUnsub = null; }
+  document.getElementById('chatOverlay').classList.add('hidden');
+};
+
+async function sendChatMessage(){
+  const input = document.getElementById('chatInput');
+  const text = input.value.trim();
+  if(!text || !currentChatId) return;
+  input.value = '';
+  try{
+    await db.doc('conversations/'+currentChatId).collection('messages').add({ senderId: uid, text, createdAt: Date.now() });
+    await db.doc('conversations/'+currentChatId).set({ participants: [uid, currentPartnerId], lastMessage: text, lastAt: Date.now() });
+  }catch(e){}
+}
+document.getElementById('sendChatBtn').onclick = sendChatMessage;
+document.getElementById('chatInput').addEventListener('keydown', (e) => { if(e.key==='Enter') sendChatMessage(); });
+
+boot();
+</script>
+</body>
+</html>
